@@ -1,0 +1,25 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "bruin-plugins",
+  "owner": {
+    "name": "Bruin",
+    "email": "swan@bruin.com"
+  },
+  "description": "Bruin plugins for Claude Code",
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "bruin-plugin",
+      "displayName": "Bruin Public API Integration",
+      "description": "Everything you need to integrate with the Bruin MCP and the Bruin Public API — OAuth 2.0 auth, ticket/inventory/site/user endpoints, per-product note schemas, and webhooks.",
+      "source": ".",
+      "version": "1.0.0",
+      "author": {
+        "name": "Bruin",
+        "email": "swan@bruin.com"
+      },
+      "keywords": ["bruin", "mettel", "api", "tickets", "inventory", "oauth"],
+      "category": "integration"
+    }
+  ]
+}
