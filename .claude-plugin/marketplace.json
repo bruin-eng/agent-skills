@@ -3,7 +3,7 @@
   "name": "bruin-plugins",
   "owner": {
     "name": "Bruin",
-    "email": "swan@bruin.com"
+    "email": "engineering@bruin.com"
   },
   "description": "Bruin plugins for Claude Code",
   "version": "1.0.0",
@@ -16,7 +16,7 @@
       "version": "1.0.0",
       "author": {
         "name": "Bruin",
-        "email": "swan@bruin.com"
+        "email": "engineering@bruin.com"
       },
       "keywords": ["bruin", "mettel", "api", "tickets", "inventory", "oauth"],
       "category": "integration"
