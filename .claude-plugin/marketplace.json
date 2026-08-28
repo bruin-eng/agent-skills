@@ -11,7 +11,7 @@
     {
       "name": "bruin",
       "displayName": "Bruin Public API Integration",
-      "description": "Integrate with Bruin — MetTel's Connectivity Management System for telecom expense, network monitoring, mobility, procurement, and IT ticketing. Ships an expert Bruin Public API skill (OAuth 2.0, tickets with per-product note schemas, inventory, sites, users, and webhooks); more capabilities on the roadmap.",
+      "description": "Integrate with Bruin — MetTel's Connectivity Management System for telecom expense, network monitoring, mobility, procurement, and IT ticketing. Ships an expert Bruin Public API skill: OAuth 2.0, tickets with per-product note schemas, inventory, sites, users, and webhooks.",
       "source": ".",
       "version": "1.0.0",
       "author": {
