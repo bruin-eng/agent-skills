@@ -9,7 +9,7 @@
   "version": "1.0.0",
   "plugins": [
     {
-      "name": "bruin-plugin",
+      "name": "bruin",
       "displayName": "Bruin Public API Integration",
       "description": "Everything you need to integrate with the Bruin MCP and the Bruin Public API — OAuth 2.0 auth, ticket/inventory/site/user endpoints, per-product note schemas, and webhooks.",
       "source": ".",

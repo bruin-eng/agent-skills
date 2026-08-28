@@ -1,5 +1,5 @@
 {
-  "name": "bruin-plugin",
+  "name": "bruin",
   "description": "Everything you need to integrate with Bruin MCP and the Bruin Public API",
   "version": "1.0.0",
   "author": {
