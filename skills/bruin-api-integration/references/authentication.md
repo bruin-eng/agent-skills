@@ -8,12 +8,13 @@ for a bearer token, then send that token on every API call.
 - An **active Bruin account with admin permissions** (created by the client's
   Customer Software Engineer or project manager).
 - **OAuth credentials** generated in the Bruin portal:
-  My Company → Developer Configuration → API Access → **Generate Credentials**.
+  hamburger → Admin Center → Integration → APIs & Webhooks → **Generate
+  Credentials**.
 - The credentials are scoped to specific endpoints. To add an endpoint not
   listed on the API Access page, the client contacts their CSE.
 
 > Credential generation happens in the portal, not via API. If a client hasn't
-> generated credentials yet, direct them there — you can't do it for them.
+> generated credentials yet, direct them there; you can't do it for them.
 
 ## OAuth Client ID vs. Bruin Client ID
 
@@ -30,7 +31,7 @@ ID**.
 
 | Environment | Auth endpoint (token) | API base URL (calls) |
 | --- | --- | --- |
-| Commercial | `https://apigw.bruin.com/authorize/token` | `https://api.bruin.com` |
+| Commercial | `https://api.mettel.net/authorize/token` | `https://api.bruin.com` |
 | Federal (EIS) | `https://id-fed.mettel.net/identity/connect/token` | `https://fedapi.mettel.net` |
 | Federal (Non-EIS) | `https://id-federal.mettel.net/identity/connect/token` | `https://federalapi.mettel.net` |
 
@@ -46,7 +47,7 @@ Pick one environment and use its auth endpoint **and** API base together.
 - `scope=public_api`
 
 ```bash
-curl -X POST https://apigw.bruin.com/authorize/token \
+curl -X POST https://api.mettel.net/authorize/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=client_credentials" \
   -d "client_id=OAUTH_CLIENT_ID" \
@@ -58,7 +59,7 @@ curl -X POST https://apigw.bruin.com/authorize/token \
 import requests
 
 resp = requests.post(
-    "https://apigw.bruin.com/authorize/token",
+    "https://api.mettel.net/authorize/token",
     headers={"Content-Type": "application/x-www-form-urlencoded"},
     data={
         "grant_type": "client_credentials",
@@ -106,15 +107,17 @@ endpoints:
 | `FunctionPermissionSiteUpdate` | `POST /api/Site` |
 | `FunctionPermissionUserGet` | `GET /api/User` |
 | `FunctionPermissionUserUpdate` | `POST /api/User`, `PUT /api/User` |
+| `FunctionPermissionTicketGet` | `GET /api/Ticket`, `GET /api/Ticket/{ticketId}/details`, `GET /api/Ticket/{ticketId}/pon` |
 
-(Ticket endpoints have their own scopes provisioned per account.)
+Ticket **write** scopes (`POST /api/Ticket`, `PlaceOrder`) are provisioned per
+account; a `403` on a write means the credential needs a CSE scope change.
 
 ## Auth error cheat-sheet
 
 | Status | Meaning | Fix |
 | --- | --- | --- |
 | `401 Unauthorized` | Missing/expired/invalid token | Request a fresh token; check you're using the right environment's auth endpoint |
-| `403 Forbidden` | Token is valid but the credential lacks the scope for this endpoint | Add the scope via portal/CSE — not a code fix |
+| `403 Forbidden` | Token is valid but the credential lacks the scope for this endpoint | Add the scope via portal/CSE, not a code fix |
 | `400 Bad Request` | Malformed token request or missing form fields | Check `grant_type`, `scope=public_api`, and content type |
 
 > Security: store the Client Secret in a secret manager or env var, never in

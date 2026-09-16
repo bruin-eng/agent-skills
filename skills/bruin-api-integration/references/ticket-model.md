@@ -51,7 +51,7 @@ Identifies which inventory the ticket is opened against.
 | `ServiceEvent` | string | No | Event type (e.g. `"Jitter"`, `"PacketLoss"`). |
 | `ServiceInterfaces` | string[] | No | Interfaces, e.g. `["GE1", "GE2"]`. |
 
-Use `GET /api/Inventory` to resolve a `ServiceNumber` — see
+Use `GET /api/Inventory` to resolve a `ServiceNumber`; see
 [inventory.md](inventory.md).
 
 ### `notes` (array, optional at the model level)

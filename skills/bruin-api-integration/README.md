@@ -1,4 +1,4 @@
-# Bruin Public API Integration — Agent Skill
+# Bruin Public API Integration: Agent Skill
 
 A self-contained [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
 that teaches an AI agent to help clients build and debug integrations against
@@ -13,7 +13,8 @@ bruin-api-integration/
 └── references/                    # loaded on demand
     ├── authentication.md          # OAuth 2.0, environments, scopes, token lifecycle
     ├── ticket-model.md            # universal POST /api/Ticket body + note conventions
-    ├── ordering.md                # PlaceOrder (devices), NewOrder (PIAB), topics, details
+    ├── ordering.md                # PlaceOrder (devices/PIAB/SBL), topics
+    ├── ticket-queries.md          # GET /api/Ticket list, details, PON
     ├── inventory.md  site.md  user.md  webhooks.md
     ├── tickets/                   # per-product note-type schemas (73 operations)
     │   ├── smart-phones.md  cable-internet.md  ethernet-internet.md
@@ -43,4 +44,4 @@ Content is derived from the Docusaurus docs under `Bruin-Public-API-Webdocs/`.
 When those docs change (new products, note types, or category codes),
 re-distill the affected `references/tickets/*.md` file from its source folder
 under `docs/Tickets/`. Never hand-edit note types or category codes that aren't
-in the source docs — the skill's value is fidelity to the published API.
+in the source docs. The skill's value is fidelity to the published API.
