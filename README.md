@@ -44,7 +44,7 @@ Claude triggers `bruin-api-integration` when a task involves:
 - OAuth 2.0 client-credentials auth against Bruin, or a `401` / `403` on the API
 - Building a `POST /api/Ticket` payload for a specific product (correct
   `category` code, required and conditional notes)
-- Placing device orders (`/PlaceOrder`) or PIAB orders (`/NewOrder`)
+- Placing device, PIAB, or Specialty Business Line orders (`/PlaceOrder`)
 - Listing or looking up inventory, reading `BTN` / `IMEI` / `PIC` attributes
 - Creating or reading sites and users
 - Subscribing to and parsing ticket webhooks

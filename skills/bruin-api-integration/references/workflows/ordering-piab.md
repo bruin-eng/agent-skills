@@ -1,9 +1,13 @@
 # Workflow: Ordering PIAB (POTS-in-a-Box)
 
-Order a PIAB device with specialty business lines, dispatch(es), and a backboard
-kit. Uses `POST /api/Ticket/NewOrder` — see [../ordering.md](../ordering.md) for
-the endpoint's structural rules. Related: [../site.md](../site.md),
+Order a PIAB kit with specialty business lines, dispatch(es), and a backboard
+via `POST /api/Ticket/PlaceOrder` (`scenario: "deviceAndService"`). Endpoint
+rules: [../ordering.md](../ordering.md). Related: [../site.md](../site.md),
 [../user.md](../user.md), [../webhooks.md](../webhooks.md).
+
+PIAB **repairs and changes** still use `POST /api/Ticket` — see
+[../tickets/piab.md](../tickets/piab.md). Do **not** use `POST /api/Ticket/NewOrder`
+for a new PIAB; the published how-to uses PlaceOrder only.
 
 Recommended webhook subscriptions: **NewNoteAdded** + **Closed**.
 
@@ -12,91 +16,161 @@ Recommended webhook subscriptions: **NewNoteAdded** + **Closed**.
 ## Steps
 
 1. **Create the site** (new location) — `POST /api/Site`. Store `siteID` and
-   `addressID`. A bad address returns `400`; override with
-   `CreateIfAddressUnverified`.
-2. **Create/confirm contacts** — Site + Ticket contacts must be Bruin users
-   (`POST /api/User` if needed). Site contact = someone on-premises (give a
-   valid mobile); Ticket contact = usually a PM.
-3. **Gather SKUs** — account-specific, from account care / CSE. Typical set:
-   - `CDS-90X2-PIABKIT` (device kit)
+   `addressID`. `addressID` is the order's `serviceAddressId`. A bad address
+   returns `400`; override with `CreateIfAddressUnverified`. Confirm with
+   `GET /api/Site` if needed.
+2. **Contacts** — PlaceOrder takes `orderContact` (required; often a PM) and
+   optional `siteContact` (on-premises, valid mobile). Omit `siteContact` and
+   the order contact is reused. PlaceOrder **creates** missing users by email.
+   Site-contact email domain must be registered to the account; an unregistered
+   domain is **silently skipped** (no error, no site contact). Pre-create with
+   `POST /api/User` only if you need portal/notification setup first.
+3. **Skip the site call (optional)** — send `serviceAddress{street,city,state,zip}`
+   instead of `serviceAddressId`. The API resolves or creates the address and a
+   SiteLabel. Prefer a stored `serviceAddressId` when you will reuse it. If both
+   are sent, the ID wins; if neither, the order is rejected.
+4. **Gather SKUs** — account-specific, from account care / CSE. Example strings
+   (many cannot be submitted as-is):
+   - `CDS-90X2-PIABKIT` (primary kit)
    - `PIAB-DeviceMonitoringandManagement`, `RESELLER-PIABALLOWANCE-1GB`
-   - purchase option `NOCONTRACT` or `36MONTH`
    - `PIAB-SiteSurvey/GoLive`, `PIABOneVisistInstall-OneTime` (dispatches)
-   - `SpecialtyBusinessLineAndLicense` (+ `36MONTH`, `BRUIN-LICENSED-SOFTWARE`)
+   - `SpecialtyBusinessLineAndLicense` (+ nested `BRUIN-LICENSED-SOFTWARE`)
    - `BoardBlack` (backboard kit)
-   - `IP-Port` (only if porting numbers in)
-4. **Build the order** — `POST /api/Ticket/NewOrder`, `orderType: "PIAB_NewOrder"`.
-   Assemble the recursive `items[]` tree and the level-tagged notes (below).
-5. **Submit** — ~20s to process. Store the returned `ticketId`.
+   Purchasing options are **`purchaseOption` values, not SKUs** (e.g.
+   `"Equipment Purchase"`, `"36 Months FINANCE"`). Do **not** send `NOCONTRACT`,
+   `36MONTH`, or a nested `"Purchase"` SKU.
+5. **Place the order** — `POST /api/Ticket/PlaceOrder` with
+   `scenario: "deviceAndService"`. One primary kit; everything else is `addOns`.
+   Store `ticketId`.
 6. **Track** — `NewNoteAdded` for `ShippingTracking`, `ShipUpdate`,
-   `Disp_DateConf` / `Disp_ApptConf` (technician dispatch date/time); then
-   `Closed` = install complete / lines working.
+   `Disp_DateConf` / `Disp_ApptConf`; then `Closed` = install complete / lines
+   working.
 7. **Get line data** — on `Closed`, `GET /api/Ticket/{ticketId}/details` and read
-   notes matching `FXS<n>Info` (one per line). Parse the `|`-delimited
-   `noteValue` for `DID:` (phone number) and `Line Type:`.
+   notes matching `FXS<n>Info`. Parse the `|`-delimited `noteValue` for `DID:`
+   and `Line Type:`.
 
 ---
 
-## The `items[]` tree
+## PlaceOrder body (new PIAB)
 
-- Every item: `{ sku, quantity, subItems, itemNotes }`.
-- `subItems` is **recursive** (device → lines/licenses → contract term). Keep
-  `quantity` consistent down a parent/child chain (3 lines → 3 licenses → 3
-  terms).
-- Purchasable services (survey, install, board, lines) usually carry a
-  `{ "sku": "Purchase", ... }` sub-item.
+Do **not** send a change scenario (`changeDevice`, `changeDeviceAndService`,
+`changeService`) for a new install.
 
-### Notes by level (`noteLevel`)
+```json
+{
+  "clientId": 9994,
+  "scenario": "deviceAndService",
+  "region": "US",
+  "customerReference": "PO-12345",
+  "orderContact": {
+    "firstName": "Kyle", "lastName": "Smith",
+    "email": "ksmith@mettel.net", "phoneNumber": "555-000-0000"
+  },
+  "siteContact": {
+    "firstName": "Eugene", "lastName": "Krabs",
+    "email": "ekrabs@mettel.net", "phoneNumber": "8008769823"
+  },
+  "serviceAddressId": 2340046,
+  "ticketSubscribers": [{ "email": "dshim@mettel.net" }],
+  "shippingAddress": {
+    "street": "170 S Main St", "city": "Salt Lake City", "state": "UT", "zip": "84101"
+  },
+  "deliveryPreferences": {
+    "requestedDate": "2026-05-30",
+    "shippingMethod": "Ground",
+    "specialInstructions": "Leave at front desk",
+    "attentionTo": "Eugene Krabs"
+  },
+  "items": [{
+    "sku": "CDS-90X2-PIABKIT",
+    "quantity": 1,
+    "purchaseOption": "Equipment Purchase",
+    "addOns": [
+      { "sku": "PIAB-DeviceMonitoringandManagement", "quantity": 1 },
+      { "sku": "RESELLER-PIABALLOWANCE-1GB", "quantity": 1, "purchaseOption": "Month to Month" },
+      { "sku": "PIAB-SiteSurvey/GoLive", "quantity": 1 },
+      { "sku": "PIABOneVisistInstall-OneTime", "quantity": 1 },
+      {
+        "sku": "SpecialtyBusinessLineAndLicense",
+        "quantity": 3,
+        "serviceLines": [
+          { "portExisting": false, "lineType": "Burglar Alarm" },
+          { "portExisting": false, "lineType": "Elevator" },
+          { "portExisting": false, "lineType": "Elevator" }
+        ],
+        "addOns": [{ "sku": "BRUIN-LICENSED-SOFTWARE", "quantity": 3 }]
+      },
+      { "sku": "BoardBlack", "quantity": 1, "purchaseOption": "Equipment Purchase" }
+    ]
+  }],
+  "notes": "Ordering a new PIAB with install and backboard to Headquarters",
+  "billingAccount": "350674"
+}
+```
 
-- **`Ticket`** (top-level `notes[]`):
-  `RefTicketNumber` (your ref), `MTK` (staff-visible summary — important),
-  `BAN` (`noteText` = "BANnumber:MetTel", `noteValue` = BAN ID; from CSE),
-  `SubAccount` (`-1` to create a new one), `Hierarchy`, `SiteLabel`,
-  `OrderAttributes` (`"{}"`), `OpportunityID`/`ProjectTicket`/`SrvcDlvr*` (leave
-  as example/null unless told otherwise).
-- **`Subcategory`** (per-SKU `itemNotes[]`, required on kit/survey/install/lines/board):
-  `ShippingAddress` (`noteValue` = addressID), `DDD` (`MM/DD/YYYY`, future;
-  recommend ~2 weeks out), `AttentionTo`.
-- **`Item`** (per-line, keyed by `noteForItemNo` 1..N on
-  `SpecialtyBusinessLineAndLicense`):
-  `DirectoryListing` (`True`/`False` — `False` for alarm/elevator lines),
-  `PhoneNumberType` (`New Phone Number` or `Port Existing Phone Number`),
-  `APINPANXX` (desired first 6 digits, or null to auto-pick from site),
-  `SeriesCompLine` (hunt group), `SIPLine1` (line type — required for every line).
+- `billingAccount` is **required** when the order includes Specialty Business
+  Lines. Omit `subAccountNumber` to create a new sub-account under that BAN.
+  Omitting `billingAccount` is **not** a dry run: a PIAB-with-lines call is
+  **rejected** without it.
+- Top-level `notes` is free text on the ticket. It is **not** parsed as note
+  types (`MTK`, `BAN`, `Hierarchy`, …). Billing, site, and shipping come from
+  the structured fields.
+- `addOns` is recursive (a line SKU can have its own add-ons).
+- `shippingMethod`: `Ground` (5 days), `2nd Day Air` (2), `Next Day Air` (1).
+  Omitted → first configured method (currently **2nd Day Air**). A typo is
+  accepted with **no** shipping method and **no** error.
 
-### `SIPLine1` line-type codes
+### `serviceLines` (line identity)
 
-| Line type | noteValue |
+This is the **only** place for phone number, port-in, and PIAB line type. Do
+not send item-level `phoneNumbers` / `portExisting`, and do not send per-line
+ticket notes (`SIPLine1`, `PhoneNumberType`, `DirectoryListing`, …) — PlaceOrder
+writes those from this array.
+
+| Field | When | Notes |
+| --- | --- | --- |
+| `lineType` | Recommended on every PIAB line | Name, not a code. Omitted → `Voice`. |
+| `portExisting` | Per line | `true` to port that DID; `false`/omit for a new number. |
+| `phoneNumber` | Required when `portExisting` is `true` | The DID to port. May be omitted on new-number lines. |
+
+`serviceLines.length` **must equal** `quantity` (HTTP 400 on mismatch). Mix new
+and ported lines on the same add-on. There is **no** separate `IP-Port` SKU.
+
+| Line type | `lineType` value |
 | --- | --- |
-| Voice | `231` |
-| Fire Alarm | `245` |
-| Burglar Alarm | `246` |
-| Modem | `247` |
-| Elevator | `248` |
-| Fax | `250` |
-| Elevator Modem | `251` |
+| Voice | `Voice` |
+| Fire Alarm | `Fire Alarm` |
+| Burglar Alarm | `Burglar Alarm` |
+| Modem | `Modem` |
+| Elevator | `Elevator` |
+| Fax | `Fax` |
+| Elevator Modem | `Elevator Modem` |
+
+PlaceOrder maps these to ticket notes: `PhoneNumberType`, `DIDnums`, `SIPLine1`,
+`DirectoryListing` (`"False"`), `SeriesCompLine` (`"No"`).
 
 ---
 
-## Porting numbers in
+## After submit
 
-If any line ports an existing number:
+Response: `ticketId` plus `pricing.{oneTimeTotal,monthlyTotal}` and priced
+`items[]` / `addOns[]`. Store `ticketId`.
 
-1. Add an **`IP-Port`** item with `Subcategory` itemNotes: `btnofports` (billing
-   TN of the ported lines), `portlist` (`"2"` / "I will type the DIDs to be
-   ported"), `didtextarea` (comma-separated DIDs), `dirlistingtype` (`"4"` /
-   "No Change Needed"), `cnamdetails` (caller name), plus `ShippingAddress`,
-   `DDD`, `AttentionTo`.
-2. On the ported line's `SpecialtyBusinessLineAndLicense` `Item` notes, set
-   `PhoneNumberType` = `Port Existing Phone Number` and add `btnofports` and
-   `DIDnums` (the specific TN for that line, keyed by `noteForItemNo`).
+Watch `NewNoteAdded`: `ShippingTracking` (FedEx tracking), `ShipUpdate`
+(delivered), `Disp_DateConf` / `Disp_ApptConf` (tech date/time). `Closed` =
+install complete. Resellers often start billing at Closed; MetTel line billing
+starts 21 days after order placement.
 
 ---
 
 ## Testing (production only)
 
-No client dev server. Before real submission: coordinate with account care/CSE,
-set `MTK` to the "TESTING SOFTWARE, DO NOT TAKE ANY ACTION…" warning, and expect
-to have the order reviewed/cancelled/simulated. Skipping this can trigger real
-shipments, provisioned lines, dispatches, and charges. Lines don't begin billing
-until 21 days after order placement.
+No client dev server. Send test orders to account care / CSE to review, cancel,
+or simulate. Put the warning in top-level `notes`:
+
+```json
+"notes": "TESTING SOFTWARE, DO NOT TAKE ANY ACTION ON THIS TICKET UNLESS INSTRUCTED BY AN ACCOUNT CARE REPRESENTATIVE."
+```
+
+Skipping this can trigger real shipments, provisioned lines, dispatches, and
+charges. Omitting `billingAccount` will not dry-run a PIAB order.

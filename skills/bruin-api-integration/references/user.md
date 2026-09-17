@@ -10,38 +10,38 @@ work, change roles/contact info, or manage ticket-notification subscriptions.**
 
 ## Identifiers (pick the one you have)
 
-- `userID` — Bruin's internal GUID; matches `assigneeUserId` on inventory/tickets.
-- `username` — login (typically email); accepted as a `PUT` lookup key.
-- `employeeID` — the client's external HR ID; accepted as a `PUT` lookup key
+- `userID`: Bruin's internal GUID; matches `assigneeUserId` on inventory/tickets.
+- `username`: login (typically email); accepted as a `PUT` lookup key.
+- `employeeID`: the client's external HR ID; accepted as a `PUT` lookup key
   (case-sensitive exact match).
 
 ## Status values
 
-- `A` — Active · `D` — Disabled · `L` — Locked
+- `A`: Active · `D`: Disabled · `L`: Locked
 
 ## Scopes
 
-- `FunctionPermissionUserGet` — read (`GET`)
-- `FunctionPermissionUserUpdate` — create/update (`POST` / `PUT`)
+- `FunctionPermissionUserGet`: read (`GET`)
+- `FunctionPermissionUserUpdate`: create/update (`POST` / `PUT`)
 
 ---
 
-## `GET /api/User` — list / filter users
+## `GET /api/User`: list / filter users
 
 Returns `{ "documents": [ … ] }`.
 
-> **No pagination.** Returns the **entire** matching result set in one response —
+> **No pagination.** Returns the **entire** matching result set in one response;
 > no `page`/`limit`/`offset` parameters, no cursor. Filter to narrow it; expect a
 > single `documents` array, not pages.
 
-> **Suggested approach — dump first, then decide.** Since one call returns every
+> **Suggested approach: dump first, then decide.** Since one call returns every
 > user, make a broad request (scoped by `ClientID`), **look at the raw `documents`
 > dump**, and then decide:
 > - Check whether a person already exists (by `username`/email or `employeeID`)
->   before `POST /api/User` — avoids duplicate accounts (email must be unique).
+>   before `POST /api/User`: avoids duplicate accounts (email must be unique).
 > - Grab a `userID` / `username` to assign inventory, set a contact, or target a
 >   `PUT /api/User` update.
-> - Reconcile against your HR system — spot who to create, update, or disable
+> - Reconcile against your HR system: spot who to create, update, or disable
 >   (`PUT` with `Status: "D"`) in bulk.
 >
 > Pull the list, inspect the roles/status/identifiers present, *then* choose the
@@ -73,7 +73,7 @@ Response `documents[]` fields: `userID`, `username`, `dirID`, `firstName`,
 
 ---
 
-## `POST /api/User` — create a user
+## `POST /api/User`: create a user
 
 ### Body fields
 
@@ -115,7 +115,7 @@ Response: `{ "statusCode": 200, "message": "User successfully created", "isSucce
 
 ---
 
-## `PUT /api/User` — update a user
+## `PUT /api/User`: update a user
 
 Identify the user with a **query parameter**: `userName` **or** `employeeId`
 (if both are passed, `userName` wins). The **body** must include at least one of
@@ -141,8 +141,9 @@ curl -X PUT "https://api.bruin.com/api/User?userName=jsmith@example.com" \
 
 ### `ticketSubscriptionSettings` (email notification prefs)
 
-Keys: `newOrder`, `repair`, `serviceChange` — each an object with a
-`subscriptionType`:
+If this object is present, **at least one** of `newOrder`, `repair`, or
+`serviceChange` must be supplied (an empty `{}` is invalid). Each key is an
+object with a `subscriptionType`:
 
 | Value | Behavior |
 | --- | --- |

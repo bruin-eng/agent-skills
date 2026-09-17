@@ -1,8 +1,8 @@
 # Inventory (read-only)
 
 Read-only visibility into the services, devices, and lines MetTel manages for a
-client. Every billable item — a phone, a circuit, an SD-WAN device, a Starlink
-terminal — is an inventory record with a unique `inventoryID`.
+client. Every billable item (a phone, a circuit, an SD-WAN device, a Starlink
+terminal) is an inventory record with a unique `inventoryID`.
 
 **Use this to find the `inventoryID` / `ServiceNumber` you need before opening a
 ticket, to sync into a CMDB/asset system, or to pull carrier-side identifiers
@@ -14,23 +14,23 @@ ticket, to sync into a CMDB/asset system, or to pull carrier-side identifiers
 
 Every record has a `status`:
 
-- `A` — Active (live and billable)
-- `S` — Suspended (temporarily paused, record retained)
-- `D` — Disconnected (terminated, record retained for history)
+- `A`: Active (live and billable)
+- `S`: Suspended (temporarily paused, record retained)
+- `D`: Disconnected (terminated, record retained for history)
 
 ---
 
-## `GET /api/Inventory` — list / filter inventory
+## `GET /api/Inventory`: list / filter inventory
 
 Returns `{ "documents": [ … ] }`. All query params are optional filters; combine
 them to narrow the set. Most integrations scope by `ClientId`.
 
 > **No pagination.** This endpoint returns the **entire** matching result set in
-> one response — there are no `page`/`limit`/`offset` parameters and no cursor.
+> one response; there are no `page`/`limit`/`offset` parameters and no cursor.
 > Use the filters to keep responses manageable, and expect a single (possibly
 > large) `documents` array rather than pages to iterate.
 
-> **Suggested approach — dump first, then decide.** Because a single call returns
+> **Suggested approach: dump first, then decide.** Because a single call returns
 > everything, a good pattern is to make one broad request (scoped by `ClientId`),
 > **look at the raw `documents` dump**, and then decide what to do with it rather
 > than guessing filters up front:
@@ -38,11 +38,11 @@ them to narrow the set. Most integrations scope by `ClientId`.
 >   for this client, then re-query (or filter client-side) for the subset you want.
 > - Locate the record you need and grab its `inventoryID` / `serviceNumber` before
 >   opening a ticket or calling the Attribute endpoint.
-> - Decide the downstream action from what you see — sync to a CMDB, reconcile
+> - Decide the downstream action from what you see: sync to a CMDB, reconcile
 >   against your own records, or narrow to a site/user.
 >
 > In short: pull the data, inspect the shape and values, *then* choose filtering
-> or the next call — don't over-constrain a query before you've seen what's there.
+> or the next call; don't over-constrain a query before you've seen what's there.
 
 ### Query parameters
 
@@ -74,7 +74,7 @@ Key fields (not exhaustive):
 | Field | Meaning |
 | --- | --- |
 | `inventoryID` | Unique Bruin inventory ID (string). |
-| `serviceNumber` | Phone number / circuit ID — the `ServiceNumber` for a ticket. |
+| `serviceNumber` | Phone number / circuit ID: the `ServiceNumber` for a ticket. |
 | `clientID`, `clientName` | Owning client. |
 | `status` | `A` / `S` / `D`. |
 | `productCategory`, `productType`, `productName` | e.g. `Wireless` / `Smart Phone` / `Apple iPhone 15`. |
@@ -82,7 +82,7 @@ Key fields (not exhaustive):
 | `assignee`, `assigneeEmail`, `assigneeUserId` | Assigned user (`assigneeUserId` is the Bruin user GUID). |
 | `vendor`, `accountNumber`, `subAccountNumber` | Upstream vendor + account. |
 | `installDate`, `disconnectDate`, `updatedDate` | Lifecycle dates. |
-| `items[]` | `{ itemName, primaryIndicator }` — item-level pointers (full values via the Attribute endpoint). |
+| `items[]` | `{ itemName, primaryIndicator }`: item-level pointers (full values via the Attribute endpoint). |
 | `longitude`, `latitude` | Site coordinates. |
 
 ```json
@@ -108,7 +108,7 @@ Key fields (not exhaustive):
 
 ---
 
-## `GET /api/Inventory/Attribute` — item-level attributes
+## `GET /api/Inventory/Attribute`: item-level attributes
 
 Returns the key/value attributes (BTN, PIC/LPIC, IMEI, etc.) for **one**
 inventory record.
@@ -146,8 +146,10 @@ change requests.
 
 ## Errors
 
-Standard codes: `400` malformed params, `401` missing/expired token, `403`
-missing `FunctionPermissionInventoryGet`, `500` server error (returns the
-standard error schema with a `traceId`). For the Attribute endpoint, a `400`
-usually means you supplied neither `InventoryId` nor a complete
-`ClientId`+`Status`+`ServiceNumber` triple.
+Standard codes: `400` malformed/invalid params, `401` missing/expired token,
+`403` missing `FunctionPermissionInventoryGet`, `500` server error (returns the
+standard error schema with a `traceId`). On the Attribute endpoint, omitting
+both `InventoryId` and the `ClientId`+`Status`+`ServiceNumber` triple is
+documented on the **500** example body
+(`data.InventoryId: ["InventoryId or ClientId+Status+ServiceNumber is required."]`),
+not as a 400.

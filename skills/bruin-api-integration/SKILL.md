@@ -2,7 +2,7 @@
 name: bruin-api-integration
 description: >-
   Help a client build, debug, or extend an integration with the Bruin Public
-  API — MetTel's REST API for tickets, inventory, sites, users, and webhooks.
+  API, MetTel's REST API for tickets, inventory, sites, users, and webhooks.
   Use when the task involves OAuth 2.0 authentication against Bruin, listing or
   looking up inventory, creating a ticket with the correct note-type payload for
   a product (Smart Phones, Cable/Ethernet/Business-Line/Starlink circuits,
@@ -20,7 +20,7 @@ ticket activity. This skill turns MetTel's published docs into a working
 reference for building and debugging those integrations.
 
 You are assisting a **client's technical team**. MetTel does not build custom
-integrations for clients — your job is to explain the API accurately, generate
+integrations for clients. Your job is to explain the API accurately, generate
 correct request payloads, and debug their calls. When something can only be done
 inside the Bruin portal (generating credentials, registering webhooks) or
 requires MetTel to provision access, say so and point them to their **Customer
@@ -28,16 +28,16 @@ Software Engineer (CSE)**.
 
 ## The two things people confuse first
 
-1. **OAuth Client ID vs. Bruin Client ID** — these are different values.
-   - **OAuth Client ID / Secret** — credentials generated in the Bruin portal
-     (My Company → Developer Configuration → API Access). Used **only** to
-     request a bearer token.
-   - **Bruin Client ID** — a numeric ID for the client's organization inside
+1. **OAuth Client ID vs. Bruin Client ID**: these are different values.
+   - **OAuth Client ID / Secret**: credentials generated in the Bruin portal
+     (hamburger → Admin Center → Integration → APIs & Webhooks → Generate
+     Credentials). Used **only** to request a bearer token.
+   - **Bruin Client ID**: a numeric ID for the client's organization inside
      Bruin (e.g. `9994`). Required as a parameter/body field in **almost every**
      API call. When an endpoint asks for `clientId`, it means this one.
    Their CSE provides the Bruin Client ID.
 
-2. **Auth endpoint vs. API base URL** — tokens come from an *auth* host; API
+2. **Auth endpoint vs. API base URL**: tokens come from an *auth* host; API
    calls go to a different *API* host. Both differ by environment. See
    [references/authentication.md](references/authentication.md).
 
@@ -45,15 +45,15 @@ Software Engineer (CSE)**.
 
 Every API call is the same two steps:
 
-1. **Get a bearer token** — `POST` client credentials to the environment's auth
+1. **Get a bearer token**: `POST` client credentials to the environment's auth
    endpoint. Tokens last **3600s (1 hour)**; refresh before expiry, don't wait
    for a 401.
-2. **Call an endpoint** — send the bearer token in the `Authorization: Bearer`
+2. **Call an endpoint**: send the bearer token in the `Authorization: Bearer`
    header, and pass the **Bruin Client ID** as a parameter/body field.
 
 ```bash
 # 1. Token
-curl -X POST https://apigw.bruin.com/authorize/token \
+curl -X POST https://api.mettel.net/authorize/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=client_credentials" \
   -d "client_id=OAUTH_CLIENT_ID" \
@@ -67,23 +67,36 @@ curl -X GET "https://api.bruin.com/api/Inventory?ClientId=9994" \
 
 Each generated credential is scoped to specific endpoints via
 `FunctionPermission*` scopes. A `403` means the credential lacks the scope for
-that endpoint — the fix is a portal/CSE change, not a code change.
+that endpoint; the fix is a portal/CSE change, not a code change.
 
-## Creating a ticket — the heart of the API
+**No pagination on most list endpoints.** `GET /api/Inventory`, `/api/Site`,
+`/api/User` return the **entire** matching result set in a single `documents`
+array; there are no `page`/`limit`/`offset` params and no cursor. Don't build
+paging loops for these; instead use the query filters to keep a response to a
+manageable size, and be ready to handle one potentially large payload.
+**`GET /api/Ticket` is the exception**: it returns `responses[]` and *is*
+paginated via `Start`/`Rows` (default/max `Rows` is `10000`).
 
-Most work is created through tickets. There are **three write endpoints** —
-pick the right one first:
+## Creating a ticket: the heart of the API
 
-- `POST /api/Ticket` — repairs, changes, disconnects, offboarding. A `category`
+Most work is created through tickets. There are **two documented write
+endpoints**; pick the right one first:
+
+- `POST /api/Ticket`: repairs, changes, disconnects, offboarding. A `category`
   code + flat `notes[]`. **The valid `category` and required `notes` differ by
-  product and operation** — that's what the per-product references cover.
-- `POST /api/Ticket/PlaceOrder` — wireless **device orders** (SKUs + add-ons).
-- `POST /api/Ticket/NewOrder` — **PIAB orders** (recursive item tree).
+  product and operation**; that's what the per-product references cover
+  (including PIAB device/line repairs).
+- `POST /api/Ticket/PlaceOrder`: **new orders** — wireless devices, accessories,
+  PIAB kits, Specialty Business Lines, QuickOrder templates, and change
+  scenarios (`changeDevice`, `changeDeviceAndService`, `changeService`). Body is
+  `scenario` + `items[]` (or `quickOrderId`) + `serviceLines`.
 
 Read [references/ticket-model.md](references/ticket-model.md) first for the
 universal `POST /api/Ticket` body and note-type conventions, then open the
-per-product reference. For the two order endpoints and ticket-detail/topic
-reads, see [references/ordering.md](references/ordering.md).
+per-product reference. For PlaceOrder and the topics list, see
+[references/ordering.md](references/ordering.md); for listing tickets or
+reading ticket details/PON status, see
+[references/ticket-queries.md](references/ticket-queries.md).
 
 ## How to navigate this skill
 
@@ -93,7 +106,8 @@ Load only the reference you need for the task in front of you.
 | --- | --- |
 | Authenticate, environments, scopes, token lifecycle | [references/authentication.md](references/authentication.md) |
 | Understand the universal ticket body + note types | [references/ticket-model.md](references/ticket-model.md) |
-| Place device/PIAB orders, list topics, read ticket details | [references/ordering.md](references/ordering.md) |
+| Place device/PIAB orders, list topics | [references/ordering.md](references/ordering.md) |
+| List/filter tickets, read ticket details, check PON status | [references/ticket-queries.md](references/ticket-queries.md) |
 | List inventory / look up an `inventoryID` / get attributes (BTN, IMEI, PIC) | [references/inventory.md](references/inventory.md) |
 | Read or create sites (locations) | [references/site.md](references/site.md) |
 | Read, create, or update users (assignees/contacts) | [references/user.md](references/user.md) |
@@ -129,7 +143,7 @@ code, and the full note-type schema (required / optional / conditional notes).
 - **Never invent note types or category codes.** If an operation isn't in the
   references, tell the client it isn't documented and to check the
   [Swagger](https://api.bruin.com/index.html) or ask their CSE. The docs
-  intentionally cover only a subset of Swagger — an undocumented endpoint may
+  intentionally cover only a subset of Swagger; an undocumented endpoint may
   still work, but don't fabricate its schema.
 - **Enforce conditional notes.** Many notes are only required when a parent note
   takes a specific value (e.g. `PhoneNumberChange = "Request New Number"`
@@ -140,4 +154,4 @@ code, and the full note-type schema (required / optional / conditional notes).
 - **`category` topics are per-account.** The authoritative list for a client is
   `GET /api/ticket/topics`. The codes in these references are the standard set.
 - **Placeholders, not secrets.** Use `OAUTH_CLIENT_ID`, `ACCESS_TOKEN`, and a
-  sample Bruin Client ID in examples — never real credentials.
+  sample Bruin Client ID in examples, never real credentials.

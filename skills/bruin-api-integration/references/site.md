@@ -1,6 +1,6 @@
 # Sites (locations)
 
-A **site** is the physical location a service is installed at — an office,
+A **site** is the physical location a service is installed at: an office,
 retail store, warehouse. Every site has a unique `siteID` and belongs to exactly
 one client. Inventory and tickets reference sites by `siteID`.
 
@@ -9,23 +9,23 @@ by address, or to sync locations from a facilities/HR system.**
 
 ## Site identifiers
 
-- `siteID` — Bruin's internal numeric ID. The one Inventory and Tickets use.
-- `siteIdentifier` — the client's own external ID (e.g. `"NYC-DOWNTOWN-001"`).
-- `siteLabel` / `siteName` — human-readable name in the portal.
+- `siteID`: Bruin's internal numeric ID. The one Inventory and Tickets use.
+- `siteIdentifier`: the client's own external ID (e.g. `"NYC-DOWNTOWN-001"`).
+- `siteLabel` / `siteName`: human-readable name in the portal.
 
 ---
 
-## `GET /api/Site` — list / filter sites
+## `GET /api/Site`: list / filter sites
 
 Returns `{ "documents": [ … ] }`.
 
 **Required scope:** `FunctionPermissionSiteGet`
 
-> **No pagination.** Returns the **entire** matching result set in one response —
+> **No pagination.** Returns the **entire** matching result set in one response;
 > no `page`/`limit`/`offset` parameters, no cursor. Filter to narrow it; expect a
 > single `documents` array, not pages.
 
-> **Suggested approach — dump first, then decide.** Since one call returns every
+> **Suggested approach: dump first, then decide.** Since one call returns every
 > site, make a broad request (scoped by `ClientID`), **look at the raw `documents`
 > dump**, and then decide:
 > - Find the location you need and grab its `siteID` / `addressID` for ordering,
@@ -79,7 +79,7 @@ Key fields: `siteID`, `siteLabel` / `siteName`, `siteIdentifier`, `clientID`,
 
 ---
 
-## `POST /api/Site` — create a site
+## `POST /api/Site`: create a site
 
 **Required scope:** `FunctionPermissionSiteUpdate`
 
